@@ -1,3 +1,5 @@
+#include "../../includes/packet.h"
+
 module NeighborDiscovery {
     provides interface NeighborDiscovery;
     uses interface Timer<TMilli> as discoveryTimer;
@@ -6,8 +8,8 @@ module NeighborDiscovery {
 uint16_t local_sequence_number = 0;
 
 implementation {
-    command void NeighborDiscovery.pass() {
-
+    command void NeighborDiscovery.start() {
+        // discoveryTimer.start();
     }
 }
 
