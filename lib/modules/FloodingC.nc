@@ -3,6 +3,6 @@ configuration FloodingC {
 }
 
 implementation {
-    components Flooding;
+    components FloodingP;
     Flooding = FloodingP.Flooding;
 }

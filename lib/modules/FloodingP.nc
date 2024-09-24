@@ -2,15 +2,18 @@
 
 module FloodingP {
     provides interface Flooding;
-    uses interface Timer<TMilli> as floodingTimer;
+    // uses interface Timer<TMilli> as floodingTimer;
 }
 
 implementation {
     command void Flooding.pass() {
 
     }
+    /*
+    event void floodingTimer.fired() {
+    // pack 
+    }
+    */
 }
 
-event void floodingTimer.fired() {
-    // pack 
-}
+
