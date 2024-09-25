@@ -1,5 +1,3 @@
-
-
 configuration NeighborDiscoveryC {
     provides interface NeighborDiscovery;
 }
@@ -7,4 +5,10 @@ configuration NeighborDiscoveryC {
 implementation {
     components NeighborDiscoveryP;
     NeighborDiscovery = NeighborDiscoveryP.NeighborDiscovery;
+
+    components new TimerMilliC() as discoveryTimer;
+    components new SimpleSendC(NEIGHBOR_DISCOVERY_PACK);
+
+    NeighborDiscoveryP.discoveryTimer -> discoveryTimer;
+    NeighborDiscoveryP.Sender -> SimpleSendC;
 }

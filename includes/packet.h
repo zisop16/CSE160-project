@@ -37,6 +37,8 @@ void logPack(pack *input){
 }
 
 enum{
+	// I have no clue what this is here for
+	NEIGHBOR_DISCOVERY_PACK=5,
 	AM_PACK=6
 };
 
