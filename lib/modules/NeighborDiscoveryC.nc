@@ -7,7 +7,7 @@ implementation {
     NeighborDiscovery = NeighborDiscoveryP.NeighborDiscovery;
 
     components new TimerMilliC() as discoveryTimer;
-    components new SimpleSendC(NEIGHBOR_DISCOVERY_PACK);
+    components new SimpleSendC(AM_PACK);
 
     NeighborDiscoveryP.discoveryTimer -> discoveryTimer;
     NeighborDiscoveryP.Sender -> SimpleSendC;

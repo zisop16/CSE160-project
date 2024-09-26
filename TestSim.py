@@ -104,7 +104,7 @@ class TestSim:
 
     # Rough run time. tickPerSecond does not work.
     def runTime(self, amount):
-        self.run(amount*1000)
+        self.run(amount*1024)
 
     # Generic Command
     def sendCMD(self, ID, dest, payloadStr):
@@ -135,16 +135,20 @@ def main():
     s.loadTopo("long_line.topo");
     s.loadNoise("no_noise.txt");
     s.bootAll();
-    s.addChannel(s.COMMAND_CHANNEL);
-    s.addChannel(s.GENERAL_CHANNEL);
+    #  s.addChannel(s.COMMAND_CHANNEL);
+    # s.addChannel(s.GENERAL_CHANNEL);
+    s.addChannel(s.NEIGHBOR_CHANNEL);
 
-    s.runTime(10);
+    
+    s.runTime(100);
+    """
     s.ping(1, 2, "Hello, World");
     s.runTime(1)
     s.ping(1, 2, "Hi!");
     s.runTime(10);
     s.ping(2, 1, "Hello, World");
     s.runTime(10);
+    """
 
 if __name__ == '__main__':
     main()

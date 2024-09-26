@@ -54,6 +54,17 @@ implementation{
       dbg(GENERAL_CHANNEL, "Packet Received\n");
       if(len==sizeof(pack)){
          pack* myMsg=(pack*) payload;
+         uint8_t protocol = (uint8_t)(myMsg-> protocol);
+         switch(protocol) {
+            case PROTOCOL_NEIGHBOR_DISCOVERY: {
+               call NeighborDiscovery.reply(myMsg);
+               break;
+            }
+            case PROTOCOL_NEIGHBOR_REPLY: {
+               call NeighborDiscovery.readReply(myMsg);
+               break;
+            }
+         }
          dbg(GENERAL_CHANNEL, "Package Payload: %s\n", myMsg->payload);
          return msg;
       }
