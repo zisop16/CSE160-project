@@ -2,18 +2,12 @@
 
 module FloodingP {
     provides interface Flooding;
-    // uses interface Timer<TMilli> as floodingTimer;
 }
 
 implementation {
-    command void Flooding.pass() {
-
+    command void Flooding.flood(uint16_t target, uint8_t* message, uint8_t len) {
+        
     }
-    /*
-    event void floodingTimer.fired() {
-    // pack 
-    }
-    */
 }
 
 

@@ -141,6 +141,10 @@ def main():
 
     
     s.runTime(100);
+    for i in range(1, 20):
+        s.neighborDMP(i)
+        s.runTime(2)
+    s.runTime(5)
     """
     s.ping(1, 2, "Hello, World");
     s.runTime(1)

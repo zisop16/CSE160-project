@@ -79,7 +79,9 @@ implementation{
       call Sender.send(sendPackage, destination);
    }
 
-   event void CommandHandler.printNeighbors(){}
+   event void CommandHandler.printNeighbors(){
+      call NeighborDiscovery.printNeighbors();
+   }
 
    event void CommandHandler.printRouteTable(){}
 
