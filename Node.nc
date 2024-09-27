@@ -29,12 +29,12 @@ module Node{
 implementation{
    pack sendPackage;
 
-   // Prototypes
-   void makePack(pack *Package, uint16_t src, uint16_t dest, uint16_t TTL, uint16_t Protocol, uint16_t seq, uint8_t *payload, uint8_t length);
-
    event void Boot.booted(){
       call AMControl.start();
       call NeighborDiscovery.start();
+      if (TOS_NODE_ID == 1) {
+         call Flooding.flood(17, "hello", 5);
+      }
 
       dbg(GENERAL_CHANNEL, "Booted\n");
    }
@@ -64,6 +64,10 @@ implementation{
                call NeighborDiscovery.readReply(myMsg);
                break;
             }
+            case PROTOCOL_FLOODING: {
+               call Flooding.handleFlood(myMsg, len);
+               break;
+            }
          }
          dbg(GENERAL_CHANNEL, "Package Payload: %s\n", myMsg->payload);
          return msg;
@@ -83,6 +87,10 @@ implementation{
       call NeighborDiscovery.printNeighbors();
    }
 
+   event void CommandHandler.flood(uint16_t destination, uint8_t len, uint8_t *payload) {
+      call Flooding.flood(destination, payload, len);
+   }
+
    event void CommandHandler.printRouteTable(){}
 
    event void CommandHandler.printLinkState(){}
@@ -96,13 +104,4 @@ implementation{
    event void CommandHandler.setAppServer(){}
 
    event void CommandHandler.setAppClient(){}
-
-   void makePack(pack *Package, uint16_t src, uint16_t dest, uint16_t TTL, uint16_t protocol, uint16_t seq, uint8_t* payload, uint8_t length){
-      Package->src = src;
-      Package->dest = dest;
-      Package->TTL = TTL;
-      Package->seq = seq;
-      Package->protocol = protocol;
-      memcpy(Package->payload, payload, length);
-   }
 }

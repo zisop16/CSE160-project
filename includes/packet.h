@@ -17,15 +17,9 @@ enum{
 
 typedef nx_struct floodPack {
 	nx_uint8_t origin;
-	nx_uint16_t seq;
-	nx_uint8_t payload[0];
+	nx_uint8_t target;
+	nx_uint8_t message[0];
 }floodPack;
-
-typedef nx_struct linkPack{
-	nx_uint8_t src;
-	nx_uint8_t dest;
-	nx_uint8_t payload[0];
-}linkPack;
 
 
 typedef nx_struct pack{
@@ -46,6 +40,21 @@ typedef nx_struct pack{
 void logPack(pack *input){
 	dbg(GENERAL_CHANNEL, "Src: %hhu Dest: %hhu Seq: %hhu TTL: %hhu Protocol:%hhu  Payload: %s\n",
 	input->src, input->dest, input->seq, input->TTL, input->protocol, input->payload);
+}
+
+void makePack(pack *Package, uint16_t src, uint16_t dest, uint16_t TTL, uint16_t protocol, uint16_t seq, uint8_t* payload, uint8_t length){
+	Package->src = src;
+	Package->dest = dest;
+	Package->TTL = TTL;
+	Package->seq = seq;
+	Package->protocol = protocol;
+    memcpy(Package->payload, payload, length);
+}
+
+void makeFloodPack(floodPack* packet, uint8_t origin, uint8_t target, uint8_t* message, uint8_t length) {
+	packet->origin = origin;
+	packet->target = target;
+	memcpy(packet->message, message, length);
 }
 
 enum{

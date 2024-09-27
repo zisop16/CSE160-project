@@ -19,15 +19,6 @@ implementation {
     pack neighborDiscoveryPacket;
     pack neighborReplyPacket;
 
-    void makePack(pack *Package, uint16_t src, uint16_t dest, uint16_t TTL, uint16_t protocol, uint16_t seq, uint8_t* payload, uint8_t length){
-        Package->src = src;
-        Package->dest = dest;
-        Package->TTL = TTL;
-        Package->seq = seq;
-        Package->protocol = protocol;
-        memcpy(Package->payload, payload, length);
-    }
-
     event void discoveryTimer.fired() {
         uint8_t* payload = "";
         // idk???
@@ -42,11 +33,15 @@ implementation {
         }
     }
     
+    command float* NeighborDiscovery.statistics() {
+        return neighborResponseStatistics;
+    }
+    
     command void NeighborDiscovery.start() {
         call discoveryTimer.startPeriodic(30 * second);
     }
     command void NeighborDiscovery.reply(pack* neighborPacket) {
-        uint8_t payload = "";
+        uint8_t* payload = "";
         uint16_t TTL = 1;
         makePack(&neighborReplyPacket, TOS_NODE_ID, neighborPacket->src, TTL, PROTOCOL_NEIGHBOR_REPLY, neighborPacket->seq, payload, 0);
         call Sender.send(neighborReplyPacket, neighborPacket->src);
@@ -54,7 +49,7 @@ implementation {
     command void NeighborDiscovery.readReply(pack* confirmationPacket) {
         int sequenceNum = confirmationPacket->seq;
         int neighborID;
-        uint16_t currentStats;
+        
         // If this is a reply to an older sequence number, we throw it out
         if (sequenceNum != localSequenceNumber) {
             return;
