@@ -15,6 +15,18 @@ enum{
 	MAX_TTL = 15
 };
 
+typedef nx_struct floodPack {
+	nx_uint8_t origin;
+	nx_uint16_t seq;
+	nx_uint8_t payload[0];
+}floodPack;
+
+typedef nx_struct linkPack{
+	nx_uint8_t src;
+	nx_uint8_t dest;
+	nx_uint8_t payload[0];
+}linkPack;
+
 
 typedef nx_struct pack{
 	nx_uint16_t dest;
