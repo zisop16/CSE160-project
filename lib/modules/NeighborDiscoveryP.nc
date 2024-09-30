@@ -64,7 +64,7 @@ implementation {
         for (i = 0; i < NUM_NODES; i++) {
             stat = neighborResponseStatistics[i];
             if (stat >= .5) {
-                dbg(NEIGHBOR_CHANNEL, "I am neighbors with node: %d at confidence: %f\n", i, stat);
+                dbg(NEIGHBOR_CHANNEL, "I am neighbors with node: %d at confidence: %f\n", i + 1, stat);
             }
         }
     }

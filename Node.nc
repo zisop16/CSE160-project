@@ -61,7 +61,8 @@ implementation{
                call NeighborDiscovery.readReply(myMsg);
                break;
             }
-            case PROTOCOL_FLOODING: {
+            case PROTOCOL_FLOODING:
+            case PROTOCOL_FLOOD_ACKNOWLEDGE: {
                call Flooding.handleFlood(myMsg, len);
                break;
             }

@@ -147,16 +147,16 @@ def main():
 
     
     s.runTime(50);
-    s.flood(2, 18, "hello");
-    s.runTime(5);
-    s.flood(19, 5, "fuck you");
-    s.runTime(20);
     """
     for i in range(1, 20):
         s.neighborDMP(i)
         s.runTime(2)
     s.runTime(5)
     """
+    s.flood(2, 18, "hello");
+    s.runTime(5);
+    s.flood(19, 16, "fuck you");
+    s.runTime(50);
     """
     s.ping(1, 2, "Hello, World");
     s.runTime(1)
