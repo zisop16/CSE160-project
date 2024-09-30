@@ -15,6 +15,7 @@ implementation {
 
     command void Flooding.flood(uint8_t target, uint8_t* message, uint8_t len) {
         int i;
+        int TTL = 18;
         uint8_t neighborID;
         uint8_t floodPackSize;
         float* stats = call NeighborDiscovery.statistics();
@@ -27,7 +28,7 @@ implementation {
             makeFloodPack(&floodPacket, TOS_NODE_ID, target, message, len);
             floodPackSize = sizeof(floodPack) + len;
             localSequenceNumber += 1;
-            makePack(&sendPacket, TOS_NODE_ID, neighborID, NUM_NODES, PROTOCOL_FLOODING, localSequenceNumber, (uint8_t*)&floodPacket, floodPackSize);
+            makePack(&sendPacket, TOS_NODE_ID, neighborID, TTL, PROTOCOL_FLOODING, localSequenceNumber, (uint8_t*)&floodPacket, floodPackSize);
             call Sender.send(sendPacket, neighborID);
         }
         // makePack(&sendPacket, TOS_NODE_ID)

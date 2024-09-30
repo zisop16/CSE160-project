@@ -148,7 +148,7 @@ def main():
     
     s.runTime(50);
     s.flood(2, 18, "hello");
-    s.runTime(1);
+    s.runTime(5);
     s.flood(19, 5, "fuck you");
     s.runTime(20);
     """

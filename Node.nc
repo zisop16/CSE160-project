@@ -32,9 +32,6 @@ implementation{
    event void Boot.booted(){
       call AMControl.start();
       call NeighborDiscovery.start();
-      if (TOS_NODE_ID == 1) {
-         call Flooding.flood(17, "hello", 5);
-      }
 
       dbg(GENERAL_CHANNEL, "Booted\n");
    }
