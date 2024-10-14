@@ -10,7 +10,7 @@
 #include "channels.h"
 
 enum{
-	PACKET_HEADER_LENGTH = 8,
+	PACKET_HEADER_LENGTH = 6,
 	PACKET_MAX_PAYLOAD_SIZE = 28 - PACKET_HEADER_LENGTH,
 	MAX_TTL = 15
 };
@@ -23,8 +23,8 @@ typedef nx_struct floodPack {
 
 
 typedef nx_struct pack{
-	nx_uint16_t dest;
-	nx_uint16_t src;
+	nx_uint8_t dest;
+	nx_uint8_t src;
 	nx_uint16_t seq;		//Sequence Number
 	nx_uint8_t TTL;		//Time to Live
 	nx_uint8_t protocol;

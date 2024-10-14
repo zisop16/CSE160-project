@@ -105,7 +105,7 @@ class TestSim:
 
     # Rough run time. tickPerSecond does not work.
     def runTime(self, amount):
-        self.run(amount*1024)
+        self.run(int(amount*1024))
 
     # Generic Command
     def sendCMD(self, ID, dest, payloadStr):
@@ -146,25 +146,24 @@ def main():
     s.addChannel(s.FLOODING_CHANNEL);
 
     
-    s.runTime(50);
+    s.runTime(150);
+    
     """
     for i in range(1, 20):
         s.neighborDMP(i)
         s.runTime(2)
     s.runTime(5)
     """
-    s.flood(2, 18, "hello");
-    s.runTime(5);
-    s.flood(19, 16, "fuck you");
+
+    
+    s.flood(1, 18, "Hello, World");
+    s.runTime(6)
+    s.moteOff(1)
+    s.flood(18, 1, "Hi!");
+    # s.runTime(10);
+    # s.ping(2, 1, "Hello, World");
     s.runTime(50);
-    """
-    s.ping(1, 2, "Hello, World");
-    s.runTime(1)
-    s.ping(1, 2, "Hi!");
-    s.runTime(10);
-    s.ping(2, 1, "Hello, World");
-    s.runTime(10);
-    """
+    
 
 if __name__ == '__main__':
     main()

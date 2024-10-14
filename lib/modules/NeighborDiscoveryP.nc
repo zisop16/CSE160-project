@@ -12,8 +12,9 @@ implementation {
     int localSequenceNumber = 0;
     // Store 19 floats for neighbor response statistics
     float neighborResponseStatistics[NUM_NODES];
+    float neighborResponseStatisticsNext[NUM_NODES];
     // Alpha for exponential weighting
-    const float alpha = .2;
+    const float alpha = .1;
 
 
     pack neighborDiscoveryPacket;
@@ -29,8 +30,28 @@ implementation {
         call Sender.send(neighborDiscoveryPacket, AM_BROADCAST_ADDR);
         for (i = 0; i < NUM_NODES; i++) {
             // Left shift all neighbor response statistics so that our next bit will be from this set of neighborResponses
-            neighborResponseStatistics[i] *= 1 - alpha;
+            neighborResponseStatistics[i] = neighborResponseStatisticsNext[i];
+            neighborResponseStatisticsNext[i] = neighborResponseStatistics[i] * (1 - alpha);
         }
+    }
+    /**
+    We want a logarithmic mapping for values between .25 -> 1 to 254 -> 0
+    On each iteration, we divide by base and increase log by 1. If val > 1, return log
+    log_base(.25) = -255
+    -> base = .9945
+    This gives us log(.25) == 252
+    */
+    uint8_t log(float val) {
+        float base = .9945;
+        uint8_t count = 0;
+        if (val == 0) {
+            return 255;
+        }
+        while (val < 1) {
+            val /= base;
+            count += 1;
+        }
+        return count;
     }
     
     command float* NeighborDiscovery.statistics() {
@@ -38,7 +59,7 @@ implementation {
     }
     
     command void NeighborDiscovery.start() {
-        call discoveryTimer.startPeriodic(30 * second);
+        call discoveryTimer.startPeriodic(15 * second);
     }
     command void NeighborDiscovery.reply(pack* neighborPacket) {
         uint8_t* payload = "";
@@ -55,7 +76,7 @@ implementation {
             return;
         }
         neighborID = confirmationPacket->src;
-        neighborResponseStatistics[neighborID - 1] += alpha;
+        neighborResponseStatisticsNext[neighborID - 1] += alpha;
         // dbg(NEIGHBOR_CHANNEL, "Current statistics on neighbor %d: %d\n", neighborID, currentStats);
     }
     command void NeighborDiscovery.printNeighbors() {
@@ -63,7 +84,7 @@ implementation {
         float stat;
         for (i = 0; i < NUM_NODES; i++) {
             stat = neighborResponseStatistics[i];
-            if (stat >= .5) {
+            if (stat >= .25){
                 dbg(NEIGHBOR_CHANNEL, "I am neighbors with node: %d at confidence: %f\n", i + 1, stat);
             }
         }

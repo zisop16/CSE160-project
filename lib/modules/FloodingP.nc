@@ -15,15 +15,17 @@ implementation {
     pack awaitingPacket;
     uint16_t localSequenceNumber = 0;
     uint16_t TTL = 18;
-    uint16_t highestSequenceNumbers[NUM_NODES];
+    uint16_t highestFloodSeqs[NUM_NODES];
+    uint16_t highestReplySeqs[NUM_NODES];
+    uint8_t missingReplyCount = 0;
+    const uint8_t MAX_MISSING_REPLIES = 5;
     // Whether the node is currently waiting for the acknowledgement on their flood packet
     uint8_t awaitingAcknowledgement = 0;
     uint16_t acknowledgementWait = 10;
 
-    void sendAcknowledgement(uint8_t origin, float* stats) {
+    void sendAcknowledgement(uint8_t origin, uint16_t seq, float* stats) {
         int i;
         int neighborID;
-        localSequenceNumber += 1;
         for (i = 0; i < NUM_NODES; i++) {
             if (stats[i] < .5) {
                 continue;
@@ -31,7 +33,7 @@ implementation {
             neighborID = i + 1;
 
             makeFloodPack(&floodPacket, TOS_NODE_ID, origin, "", 0);
-            makePack(&sendPacket, TOS_NODE_ID, neighborID, TTL, PROTOCOL_FLOOD_ACKNOWLEDGE, localSequenceNumber, &floodPacket, sizeof(floodPack));
+            makePack(&sendPacket, TOS_NODE_ID, neighborID, TTL, PROTOCOL_FLOOD_ACKNOWLEDGE, seq, &floodPacket, sizeof(floodPack));
             call Sender.send(sendPacket, neighborID);
         }
     }
@@ -45,6 +47,7 @@ implementation {
             // Do not send multiple flood packets at once
             return;
         }
+        missingReplyCount = 0;
         localSequenceNumber += 1;
         for (i = 0; i < NUM_NODES; i++) {
             if (stats[i] < .5) {
@@ -81,16 +84,31 @@ implementation {
         if (dest != TOS_NODE_ID) {
             return;
         }
-        if (seq <= highestSequenceNumbers[origin - 1]) {
-            return;
+        switch(protocol) {
+            case PROTOCOL_FLOODING: {
+                if (seq <= highestFloodSeqs[origin - 1]) {
+                    return;
+                }
+                highestFloodSeqs[origin - 1] = seq;
+                break;
+            }
+            case PROTOCOL_FLOOD_ACKNOWLEDGE: {
+                if (seq <= highestReplySeqs[target - 1]) {
+                    return;
+                }
+                highestReplySeqs[target - 1] = seq;
+                
+                break;
+            }
         }
-        highestSequenceNumbers[origin - 1] = seq;
+        
+        
         
         if (target == TOS_NODE_ID) {
             switch(protocol) {
                 case PROTOCOL_FLOODING: {
                     dbg(FLOODING_CHANNEL, "Node: %i sent me a message: %s\n", origin, message);
-                    sendAcknowledgement(origin, stats);
+                    sendAcknowledgement(origin, seq, stats);
                     break;
                 }
                 case PROTOCOL_FLOOD_ACKNOWLEDGE: {
@@ -136,7 +154,14 @@ implementation {
             return;
         }
         // Didn't receive acknowledgement
+        
         localSequenceNumber += 1;
+        missingReplyCount += 1;
+        // dbg(FLOODING_CHANNEL, "Reply #%d\n", missingReplyCount);
+        if (missingReplyCount == MAX_MISSING_REPLIES) {
+            // dbg(FLOODING_CHANNEL, "I gave up\n");
+            return;
+        }
         stats = call NeighborDiscovery.statistics();
         for (i = 0; i < NUM_NODES; i++) {
             if (stats[i] < .5) {
