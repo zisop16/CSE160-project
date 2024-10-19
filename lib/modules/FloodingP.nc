@@ -6,6 +6,7 @@ module FloodingP {
     uses interface SimpleSend as Sender;
     uses interface Timer<TMilli> as acknowledgementTimer;
     uses interface NeighborDiscovery;
+    uses interface LinkState;
 }
 
 implementation {
@@ -23,68 +24,62 @@ implementation {
     uint8_t awaitingAcknowledgement = 0;
     uint16_t acknowledgementWait = 10;
 
-    void sendAcknowledgement(uint8_t origin, uint16_t seq, float* stats) {
+    void sendAcknowledgement(uint8_t origin, uint16_t seq) {
         int i;
-        int neighborID;
-        for (i = 0; i < NUM_NODES; i++) {
-            if (stats[i] < .5) {
+        for (i = 1; i <= NUM_NODES; i++) {
+            if (!call NeighborDiscovery.isNeighbor(i)) {
                 continue;
             }
-            neighborID = i + 1;
 
             makeFloodPack(&floodPacket, TOS_NODE_ID, origin, "", 0);
-            makePack(&sendPacket, TOS_NODE_ID, neighborID, TTL, PROTOCOL_FLOOD_ACKNOWLEDGE, seq, &floodPacket, sizeof(floodPack));
-            call Sender.send(sendPacket, neighborID);
+            makePack(&sendPacket, TOS_NODE_ID, i, TTL, PROTOCOL_FLOOD_ACKNOWLEDGE, seq, &floodPacket, sizeof(floodPack));
+            call Sender.send(sendPacket, i);
         }
+        
     }
 
-    command void Flooding.flood(uint8_t target, uint8_t* message, uint8_t len) {
+    command void Flooding.flood(uint8_t protocol, uint8_t target, uint8_t* message, uint8_t len) {
         int i;
-        uint8_t neighborID;
         uint8_t floodPackSize;
-        float* stats = call NeighborDiscovery.statistics();
         if (awaitingAcknowledgement) {
             // Do not send multiple flood packets at once
             return;
         }
         missingReplyCount = 0;
         localSequenceNumber += 1;
-        for (i = 0; i < NUM_NODES; i++) {
-            if (stats[i] < .5) {
+        for (i = i; i <= NUM_NODES; i++) {
+            if (!call NeighborDiscovery.isNeighbor(i)) {
                 continue;
             }
-            // node i+1 is a neighbor
-            neighborID = i + 1;
             makeFloodPack(&floodPacket, TOS_NODE_ID, target, message, len);
             floodPackSize = sizeof(floodPack) + len;
-            makePack(&sendPacket, TOS_NODE_ID, neighborID, TTL, PROTOCOL_FLOODING, localSequenceNumber, (uint8_t*)&floodPacket, floodPackSize);
-            call Sender.send(sendPacket, neighborID);
+            makePack(&sendPacket, TOS_NODE_ID, i, TTL, protocol, localSequenceNumber, (uint8_t*)&floodPacket, floodPackSize);
+            call Sender.send(sendPacket, i);
         }
+
         // Cache the packet we sent out, so that we can easily re-send it if we don't get an acknowledgement
         memcpy(&awaitingPacket, &sendPacket, sizeof(pack));
         call acknowledgementTimer.startOneShot(acknowledgementWait * second);
         awaitingAcknowledgement = 1;
-        // makePack(&sendPacket, TOS_NODE_ID)
     }
-    command void Flooding.handleFlood(pack* packet, uint8_t len) {
+    command void Flooding.handleFlood(pack* packet) {
         floodPack* flood = (floodPack*)packet->payload;
         uint8_t TTL;
         uint8_t origin = flood->origin;
         uint8_t target = flood->target;
-        uint16_t dest = packet->dest;
-        uint16_t seq = packet->seq;
+        uint8_t dest = packet->dest;
+        uint8_t seq = packet->seq;
         uint8_t* message = flood->message;
-        uint16_t immediateSrc = packet->src;
-        uint16_t protocol = packet->protocol;
+        uint8_t immediateSrc = packet->src;
+        uint8_t protocol = packet->protocol;
         int i;
-        int neighborID;
-        float* stats = call NeighborDiscovery.statistics();;
-        
 
-        if (dest != TOS_NODE_ID) {
-            return;
-        }
+        int* neighbors = call NeighborDiscovery.getNeighbors();
+        int byteIndex;
+        int bitIndex;
+        
         switch(protocol) {
+            case PROTOCOL_LINKSTATE:
             case PROTOCOL_FLOODING: {
                 if (seq <= highestFloodSeqs[origin - 1]) {
                     return;
@@ -103,12 +98,21 @@ implementation {
         }
         
         
-        
-        if (target == TOS_NODE_ID) {
+        if ((target == TOS_NODE_ID) || (target == (uint8_t)(AM_BROADCAST_ADDR))) {
             switch(protocol) {
                 case PROTOCOL_FLOODING: {
                     dbg(FLOODING_CHANNEL, "Node: %i sent me a message: %s\n", origin, message);
-                    sendAcknowledgement(origin, seq, stats);
+                    if (target != AM_BROADCAST_ADDR) {
+                        sendAcknowledgement(origin, seq);
+                    }
+                    break;
+                }
+                case PROTOCOL_LINKSTATE: {
+                    
+                    call LinkState.receiveUpdate(flood);
+                    if (target != AM_BROADCAST_ADDR) {
+                        sendAcknowledgement(origin, seq);
+                    }
                     break;
                 }
                 case PROTOCOL_FLOOD_ACKNOWLEDGE: {
@@ -117,8 +121,9 @@ implementation {
                     break;
                 }
             }
-            
-            return;
+            if (target == TOS_NODE_ID) {
+                return;
+            }
         }
         TTL = packet->TTL - 1;
         if (TTL == 0) {
@@ -128,28 +133,25 @@ implementation {
         packet->TTL = TTL;
         packet->src = TOS_NODE_ID;
 
-        for (i = 0; i < NUM_NODES; i++) {
+        for (i = 1; i <= NUM_NODES; i++) {
             // Don't send the flood packet to non-neighbors
-            if (stats[i] < .5) {
+            if (!call NeighborDiscovery.isNeighbor(i)) {
                 continue;
             }
-            neighborID = i + 1;
             // Don't send the flooding packet back to the person who gave it to us
-            if (neighborID == immediateSrc) {
+            if (i == immediateSrc) {
                 continue;
             }
-            packet->dest = neighborID;
+            packet->dest = i;
             // dbg(FLOODING_CHANNEL, "Src: %hhu Dest: %hhu Seq: %hhu TTL: %hhu Protocol:%hhu  Payload: %s\n",
 	        // packet->src, packet->dest, packet->seq, packet->TTL, packet->protocol, packet->payload);
             // Send the modified flood packet to 
-            call Sender.send(*packet, neighborID);
+            call Sender.send(*packet, i);
         }
     }
     
     event void acknowledgementTimer.fired() {
         int i;
-        int neighborID;
-        float* stats;
         if (!awaitingAcknowledgement) {
             return;
         }
@@ -162,18 +164,17 @@ implementation {
             // dbg(FLOODING_CHANNEL, "I gave up\n");
             return;
         }
-        stats = call NeighborDiscovery.statistics();
-        for (i = 0; i < NUM_NODES; i++) {
-            if (stats[i] < .5) {
+        for (i = 1; i <= NUM_NODES; i++) {
+            if (!call NeighborDiscovery.isNeighbor(i)) {
                 continue;
             }
-            neighborID = i + 1;
             awaitingPacket.seq = localSequenceNumber;
-            awaitingPacket.dest = neighborID;
-            call Sender.send(awaitingPacket, neighborID);
+            awaitingPacket.dest = i;
+            call Sender.send(awaitingPacket, i);
         }
         call acknowledgementTimer.startOneShot(acknowledgementWait * second);
     }
+
 }
 
 

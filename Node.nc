@@ -33,6 +33,7 @@ implementation{
    event void Boot.booted(){
       call AMControl.start();
       call NeighborDiscovery.start();
+      call LinkState.start();
 
       dbg(GENERAL_CHANNEL, "Booted\n");
    }
@@ -49,10 +50,14 @@ implementation{
    event void AMControl.stopDone(error_t err){}
 
    event message_t* Receive.receive(message_t* msg, void* payload, uint8_t len){
+      int i;
+      char* thing = (char*)payload;
       dbg(GENERAL_CHANNEL, "Packet Received\n");
+      
       if(len==sizeof(pack)){
          pack* myMsg=(pack*) payload;
          uint8_t protocol = (uint8_t)(myMsg-> protocol);
+
          switch(protocol) {
             case PROTOCOL_NEIGHBOR_DISCOVERY: {
                call NeighborDiscovery.reply(myMsg);
@@ -63,8 +68,13 @@ implementation{
                break;
             }
             case PROTOCOL_FLOODING:
+            case PROTOCOL_LINKSTATE:
             case PROTOCOL_FLOOD_ACKNOWLEDGE: {
-               call Flooding.handleFlood(myMsg, len);
+               call Flooding.handleFlood(myMsg);
+               break;
+            }
+            case PROTOCOL_DIRECTROUTE: {
+               call LinkState.handleRoutingPacket(myMsg);
                break;
             }
          }
@@ -77,9 +87,7 @@ implementation{
 
 
    event void CommandHandler.ping(uint16_t destination, uint8_t *payload){
-      dbg(GENERAL_CHANNEL, "PING EVENT \n");
-      makePack(&sendPackage, TOS_NODE_ID, destination, 0, 0, 0, payload, PACKET_MAX_PAYLOAD_SIZE);
-      call Sender.send(sendPackage, destination);
+      call LinkState.sendMessage(destination, payload, 22);
    }
 
    event void CommandHandler.printNeighbors(){
@@ -87,10 +95,12 @@ implementation{
    }
 
    event void CommandHandler.flood(uint16_t destination, uint8_t len, uint8_t *payload) {
-      call Flooding.flood(destination, payload, len);
+      call Flooding.flood(PROTOCOL_FLOODING, destination, payload, len);
    }
 
-   event void CommandHandler.printRouteTable(){}
+   event void CommandHandler.printRouteTable(){
+      call LinkState.printRouteTable();
+   }
 
    event void CommandHandler.printLinkState(){}
 

@@ -137,16 +137,22 @@ class TestSim:
 def main():
     s = TestSim();
     s.runTime(10);
-    s.loadTopo("long_line.topo");
+    s.loadTopo("example.topo");
     s.loadNoise("no_noise.txt");
     s.bootAll();
     #  s.addChannel(s.COMMAND_CHANNEL);
     # s.addChannel(s.GENERAL_CHANNEL);
-    s.addChannel(s.NEIGHBOR_CHANNEL);
-    s.addChannel(s.FLOODING_CHANNEL);
+    # s.addChannel(s.NEIGHBOR_CHANNEL);
+    s.addChannel(s.ROUTING_CHANNEL);
 
     
     s.runTime(150);
+
+    s.ping(3, 7, "hello :c");
+    s.runTime(1);
+    s.ping(6, 1, "may i one day find you");
+    s.runTime(1);
+    s.routeDMP(3);
     
     """
     for i in range(1, 20):
@@ -155,11 +161,10 @@ def main():
     s.runTime(5)
     """
 
-    
-    s.flood(1, 18, "Hello, World");
+    # s.flood(1, 18, "Hello, World");
     s.runTime(6)
-    s.moteOff(1)
-    s.flood(18, 1, "Hi!");
+    # s.moteOff(1)
+    # s.flood(18, 1, "Hi!");
     # s.runTime(10);
     # s.ping(2, 1, "Hello, World");
     s.runTime(50);

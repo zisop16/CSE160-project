@@ -9,16 +9,52 @@ module NeighborDiscoveryP {
 }
 
 implementation {
-    int localSequenceNumber = 0;
+    uint16_t localSequenceNumber = 0;
     // Store 19 floats for neighbor response statistics
     float neighborResponseStatistics[NUM_NODES];
     float neighborResponseStatisticsNext[NUM_NODES];
+    const float NEIGHBOR_THRESHOLD = .5;
+
+    // Neighbors is a bitmask for bools indicating whether each node is a neighbor
+    // ((NUM_NODES - 1) / 8) + 1 == ceil(NUM_NODES / 8.)
+    // If we have 9 nodes, we use 2 bytes
+    // If we have 8 nodes, we use 1 byte
+    // If we have 40 nodes, we use 5 bytes
+    uint8_t neighbors[neighborBytes];
     // Alpha for exponential weighting
-    const float alpha = .1;
+    const float alpha = .2;
 
 
     pack neighborDiscoveryPacket;
     pack neighborReplyPacket;
+
+    void calculateNeighbors() {
+        uint8_t i;
+        uint8_t byteIndex = 0;
+        uint8_t bitIndex;
+        uint8_t currValue = 0;
+        int currIsNeighbor;
+        for (i = 0; i < NUM_NODES; i++) {
+            if (byteIndex != i / 8) {
+                neighbors[byteIndex] = currValue;
+                currValue = 0;
+            }
+            byteIndex = i / 8;
+            bitIndex = i % 8;
+            neighborResponseStatistics[i] = neighborResponseStatisticsNext[i];
+            currIsNeighbor = neighborResponseStatistics[i] > NEIGHBOR_THRESHOLD;
+            currValue = currValue + (currIsNeighbor << bitIndex);
+        }
+    }
+    uint8_t _isNeighbor(uint8_t nodeID) {
+        uint8_t byteIndex;
+        uint8_t bitIndex;
+        // Node with ID 1 == index 0
+        nodeID -= 1;
+        byteIndex = nodeID / 8;
+        bitIndex = nodeID % 8;
+        return (neighbors[byteIndex] >> bitIndex) & 1;
+    }
 
     event void discoveryTimer.fired() {
         uint8_t* payload = "";
@@ -28,34 +64,18 @@ implementation {
         localSequenceNumber += 1;
         makePack(&neighborDiscoveryPacket, TOS_NODE_ID, AM_BROADCAST_ADDR, TTL, PROTOCOL_NEIGHBOR_DISCOVERY, localSequenceNumber, payload, 0);
         call Sender.send(neighborDiscoveryPacket, AM_BROADCAST_ADDR);
+        
+        calculateNeighbors();
         for (i = 0; i < NUM_NODES; i++) {
-            // Left shift all neighbor response statistics so that our next bit will be from this set of neighborResponses
-            neighborResponseStatistics[i] = neighborResponseStatisticsNext[i];
             neighborResponseStatisticsNext[i] = neighborResponseStatistics[i] * (1 - alpha);
         }
     }
-    /**
-    We want a logarithmic mapping for values between .25 -> 1 to 254 -> 0
-    On each iteration, we divide by base and increase log by 1. If val > 1, return log
-    log_base(.25) = -255
-    -> base = .9945
-    This gives us log(.25) == 252
-    */
-    uint8_t log(float val) {
-        float base = .9945;
-        uint8_t count = 0;
-        if (val == 0) {
-            return 255;
-        }
-        while (val < 1) {
-            val /= base;
-            count += 1;
-        }
-        return count;
+    command uint8_t NeighborDiscovery.isNeighbor(uint8_t nodeID) {
+        return _isNeighbor(nodeID);
     }
     
-    command float* NeighborDiscovery.statistics() {
-        return neighborResponseStatistics;
+    command uint8_t* NeighborDiscovery.getNeighbors() {
+        return neighbors;
     }
     
     command void NeighborDiscovery.start() {
@@ -81,11 +101,9 @@ implementation {
     }
     command void NeighborDiscovery.printNeighbors() {
         int i;
-        float stat;
         for (i = 0; i < NUM_NODES; i++) {
-            stat = neighborResponseStatistics[i];
-            if (stat >= .25){
-                dbg(NEIGHBOR_CHANNEL, "I am neighbors with node: %d at confidence: %f\n", i + 1, stat);
+            if (_isNeighbor(i)){
+                dbg(NEIGHBOR_CHANNEL, "I am neighbors with node: %d\n", i + 1);
             }
         }
     }

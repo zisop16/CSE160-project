@@ -5,6 +5,7 @@ configuration FloodingC {
 implementation {
     components FloodingP;
     components NeighborDiscoveryC;
+    components LinkStateC;
 
     Flooding = FloodingP.Flooding;
 
@@ -13,5 +14,6 @@ implementation {
 
     FloodingP.Sender -> SimpleSendC;
     FloodingP.NeighborDiscovery -> NeighborDiscoveryC;
+    FloodingP.LinkState -> LinkStateC;
     FloodingP.acknowledgementTimer -> acknowledgementTimer;
 }
