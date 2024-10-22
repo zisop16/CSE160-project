@@ -2,7 +2,6 @@ module LinkStateP {
     provides interface LinkState;
     uses interface NeighborDiscovery;
     uses interface Flooding;
-    uses interface Timer<TMilli> as updateTimer;
     uses interface Timer<TMilli> as sendTimer;
     uses interface SimpleSend as Sender;
 }
@@ -155,10 +154,6 @@ implementation {
             return;
         }
         call Sender.send(*directRoutePacket, nextHop);
-    }
-
-    event void updateTimer.fired() {
-
     }
 
     event void sendTimer.fired() {

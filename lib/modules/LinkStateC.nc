@@ -9,10 +9,8 @@ implementation {
 
     components new SimpleSendC(AM_PACK);
     components new TimerMilliC() as sendTimer;
-    components new TimerMilliC() as updateTimer;
 
     LinkStateP.sendTimer -> sendTimer;
-    LinkStateP.updateTimer -> updateTimer;
     LinkStateP.Sender -> SimpleSendC;
 
     
