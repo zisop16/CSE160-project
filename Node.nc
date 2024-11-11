@@ -73,7 +73,8 @@ implementation{
                call Flooding.handleFlood(myMsg);
                break;
             }
-            case PROTOCOL_DIRECTROUTE: {
+            case PROTOCOL_DIRECTROUTE:
+            case PROTOCOL_TCP: {
                call LinkState.handleRoutingPacket(myMsg);
                break;
             }
@@ -87,7 +88,7 @@ implementation{
 
 
    event void CommandHandler.ping(uint16_t destination, uint8_t *payload){
-      call LinkState.sendMessage(destination, payload, 22);
+      call LinkState.sendMessage(destination, PROTOCOL_DIRECTROUTE, payload);
    }
 
    event void CommandHandler.printNeighbors(){

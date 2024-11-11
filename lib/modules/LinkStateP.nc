@@ -2,6 +2,7 @@ module LinkStateP {
     provides interface LinkState;
     uses interface NeighborDiscovery;
     uses interface Flooding;
+    uses interface Socket;
     uses interface Timer<TMilli> as sendTimer;
     uses interface SimpleSend as Sender;
 }
@@ -122,7 +123,7 @@ implementation {
     }
     pack sendPacket;
     uint16_t localSequenceNumber = 0;
-    command void LinkState.sendMessage(uint8_t target, uint8_t* message, uint8_t length) {
+    command void LinkState.sendMessage(uint8_t target, uint8_t protocol, uint8_t* message) {
         uint8_t TTL = 18;
         // Remember that NODE_ID == index + 1
         uint8_t nextHop = routingTable[target - 1];
@@ -133,7 +134,7 @@ implementation {
         }
         // It is not clear that this will actually be useful.
         localSequenceNumber += 1;
-        makePack(&sendPacket, TOS_NODE_ID, target, TTL, PROTOCOL_DIRECTROUTE, localSequenceNumber, message, length);
+        makePack(&sendPacket, TOS_NODE_ID, target, TTL, protocol, localSequenceNumber, message, PACKET_MAX_PAYLOAD_SIZE);
         call Sender.send(sendPacket, nextHop);
     }
 
@@ -144,7 +145,17 @@ implementation {
         uint8_t* msg;
         if (target == TOS_NODE_ID) {
             msg = directRoutePacket->payload;
-            dbg(ROUTING_CHANNEL, "Node %d sent me a message: %s\n", source, msg);
+            switch(directRoutePacket->protocol) {
+                case PROTOCOL_DIRECTROUTE: {
+                    dbg(ROUTING_CHANNEL, "Node %d sent me a message: %s\n", source, msg);
+                    break;
+                }
+                case PROTOCOL_TCP: {
+                    call Socket.handleTCP(msg);
+                    break;
+                }
+            }
+            
             return;
         }
         nextHop = routingTable[target - 1];
@@ -161,6 +172,6 @@ implementation {
         uint8_t* neighbors = call NeighborDiscovery.getNeighbors();
 
         call Flooding.flood(PROTOCOL_LINKSTATE, AM_BROADCAST_ADDR, neighbors, neighborBytes);
-        call sendTimer.startOneShot(40 * second);
+        call sendTimer.startOneShot(30 * second);
     }
 }

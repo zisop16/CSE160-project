@@ -6,7 +6,8 @@
 #define PACKET_H
 
 
-# include "protocol.h"
+#include "protocol.h"
+#include "../../includes/socket.h"
 #include "channels.h"
 
 enum{
@@ -21,6 +22,18 @@ typedef nx_struct floodPack {
 	nx_uint8_t message[0];
 }floodPack;
 
+typedef nx_struct tcpPack {
+	nx_socket_port_t destPort;
+	nx_socket_port_t srcPort;
+	nx_uint16_t seq;
+	nx_uint16_t ack;
+	nx_uint8_t flags;
+	nx_uint8_t data[0];
+}tcpPack;
+
+uint8_t SYN_FLAG = 1 << 1;
+uint8_t ACK_FLAG = 1 << 2;
+uint8_t FIN_FLAG = 1 << 3;
 
 typedef nx_struct pack{
 	nx_uint8_t dest;
