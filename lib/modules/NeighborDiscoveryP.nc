@@ -57,12 +57,11 @@ implementation {
     }
 
     event void discoveryTimer.fired() {
-        uint8_t* payload = "";
         // idk???
         uint16_t TTL = 1;
         int i;
         localSequenceNumber += 1;
-        makePack(&neighborDiscoveryPacket, TOS_NODE_ID, AM_BROADCAST_ADDR, TTL, PROTOCOL_NEIGHBOR_DISCOVERY, localSequenceNumber, payload, 0);
+        makePack(&neighborDiscoveryPacket, TOS_NODE_ID, AM_BROADCAST_ADDR, TTL, PROTOCOL_NEIGHBOR_DISCOVERY, localSequenceNumber, (uint8_t*)"", 0);
         call Sender.send(neighborDiscoveryPacket, AM_BROADCAST_ADDR);
         
         calculateNeighbors();

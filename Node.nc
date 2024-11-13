@@ -50,8 +50,6 @@ implementation{
    event void AMControl.stopDone(error_t err){}
 
    event message_t* Receive.receive(message_t* msg, void* payload, uint8_t len){
-      int i;
-      char* thing = (char*)payload;
       dbg(GENERAL_CHANNEL, "Packet Received\n");
       
       if(len==sizeof(pack)){
@@ -88,7 +86,7 @@ implementation{
 
 
    event void CommandHandler.ping(uint16_t destination, uint8_t *payload){
-      call LinkState.sendMessage(destination, PROTOCOL_DIRECTROUTE, payload);
+      call LinkState.sendMessage(destination, PROTOCOL_DIRECTROUTE, payload, PACKET_MAX_PAYLOAD_SIZE);
    }
 
    event void CommandHandler.printNeighbors(){

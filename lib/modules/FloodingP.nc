@@ -31,8 +31,8 @@ implementation {
                 continue;
             }
 
-            makeFloodPack(&floodPacket, TOS_NODE_ID, origin, "", 0);
-            makePack(&sendPacket, TOS_NODE_ID, i, TTL, PROTOCOL_FLOOD_ACKNOWLEDGE, seq, &floodPacket, sizeof(floodPack));
+            makeFloodPack(&floodPacket, TOS_NODE_ID, origin, (uint8_t*)"", 0);
+            makePack(&sendPacket, TOS_NODE_ID, i, TTL, PROTOCOL_FLOOD_ACKNOWLEDGE, seq, (uint8_t*)&floodPacket, sizeof(floodPack));
             call Sender.send(sendPacket, i);
         }
         
@@ -47,7 +47,7 @@ implementation {
         }
         missingReplyCount = 0;
         localSequenceNumber += 1;
-        for (i = i; i <= NUM_NODES; i++) {
+        for (i = 1; i <= NUM_NODES; i++) {
             if (!call NeighborDiscovery.isNeighbor(i)) {
                 continue;
             }

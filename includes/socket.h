@@ -26,9 +26,14 @@ typedef nx_struct socket_addr_t{
     nx_uint8_t addr;
 }socket_addr_t;
 
-
 // File descripter id. Each id is associated with a socket_store_t
 typedef uint8_t socket_t;
+
+typedef struct ack_data_t{
+    uint32_t timeoutTime;
+    socket_t sock;
+    uint8_t lastSent;
+}ack_data_t;
 
 // State of a socket. 
 typedef struct socket_store_t{

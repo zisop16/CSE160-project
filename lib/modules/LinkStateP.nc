@@ -123,19 +123,20 @@ implementation {
     }
     pack sendPacket;
     uint16_t localSequenceNumber = 0;
-    command void LinkState.sendMessage(uint8_t target, uint8_t protocol, uint8_t* message) {
+    command bool LinkState.sendMessage(uint8_t target, uint8_t protocol, uint8_t* message, uint8_t length) {
         uint8_t TTL = 18;
         // Remember that NODE_ID == index + 1
         uint8_t nextHop = routingTable[target - 1];
         if (nextHop == ROUTE_UNREACHABLE) {
             dbg(ROUTING_CHANNEL, "Attempted to send a message to node: %d, but no route is currently known\n", target);
             call LinkState.printRouteTable();
-            return;
+            return FALSE;
         }
         // It is not clear that this will actually be useful.
         localSequenceNumber += 1;
         makePack(&sendPacket, TOS_NODE_ID, target, TTL, protocol, localSequenceNumber, message, PACKET_MAX_PAYLOAD_SIZE);
         call Sender.send(sendPacket, nextHop);
+        return TRUE;
     }
 
     command void LinkState.handleRoutingPacket(pack* directRoutePacket) {
@@ -151,7 +152,7 @@ implementation {
                     break;
                 }
                 case PROTOCOL_TCP: {
-                    call Socket.handleTCP(msg);
+                    call Socket.handleTCP((tcpPack*)(msg), source);
                     break;
                 }
             }

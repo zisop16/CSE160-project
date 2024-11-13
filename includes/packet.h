@@ -12,7 +12,9 @@
 
 enum{
 	PACKET_HEADER_LENGTH = 6,
+	TCP_HEADER_LENGTH = 8,
 	PACKET_MAX_PAYLOAD_SIZE = 28 - PACKET_HEADER_LENGTH,
+	TCP_MAX_PAYLOAD_SIZE = 28 - PACKET_HEADER_LENGTH - TCP_HEADER_LENGTH,
 	MAX_TTL = 15
 };
 
@@ -28,6 +30,7 @@ typedef nx_struct tcpPack {
 	nx_uint16_t seq;
 	nx_uint16_t ack;
 	nx_uint8_t flags;
+	nx_uint8_t window;
 	nx_uint8_t data[0];
 }tcpPack;
 
