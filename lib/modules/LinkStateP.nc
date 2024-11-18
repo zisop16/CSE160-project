@@ -16,13 +16,6 @@ implementation {
     uint8_t routingTable[NUM_NODES];
 
     const uint8_t ROUTE_UNREACHABLE = 255;
-    
-    command void LinkState.printRouteTable() {
-        uint8_t i;
-        for (i = 0; i < NUM_NODES; i++) {
-            dbg(ROUTING_CHANNEL, "%d -> %d\n", i + 1, routingTable[i]);
-        }
-    }
 
     uint8_t* neighborInfo(uint8_t nodeIndex) {
         uint16_t index = (nodeIndex) * neighborBytes;
@@ -103,8 +96,16 @@ implementation {
     }
 
     command void LinkState.start() {
-        call sendTimer.startOneShot(100 * second);
+        call sendTimer.startOneShot(80 * second);
     }
+
+    command void LinkState.printRouteTable() {
+        uint8_t i;
+        for (i = 0; i < NUM_NODES; i++) {
+            dbg(ROUTING_CHANNEL, "%d -> %d\n", i + 1, routingTable[i]);
+        }
+    }
+
     command void LinkState.receiveUpdate(floodPack* update) {
         uint8_t sourceID = update->origin;
         uint8_t* data = update->message;
@@ -112,9 +113,7 @@ implementation {
         uint16_t j;
         uint16_t offset;
 
-        offset = neighborBytes;
-        offset *= sourceID - 1;
-        offset -= 0;
+        offset = neighborBytes * (sourceID - 1);
 
         memcpy(neighborData + (offset), data, neighborBytes);
         
@@ -129,7 +128,7 @@ implementation {
         uint8_t nextHop = routingTable[target - 1];
         if (nextHop == ROUTE_UNREACHABLE) {
             dbg(ROUTING_CHANNEL, "Attempted to send a message to node: %d, but no route is currently known\n", target);
-            call LinkState.printRouteTable();
+            // call LinkState.printRouteTable();
             return FALSE;
         }
         // It is not clear that this will actually be useful.
@@ -168,11 +167,27 @@ implementation {
         call Sender.send(*directRoutePacket, nextHop);
     }
 
-    event void sendTimer.fired() {
-        int i;
-        uint8_t* neighbors = call NeighborDiscovery.getNeighbors();
+    bool started = FALSE;
+
+    uint16_t routingUpdatePeriod = 30;
+
+    command void LinkState.forceRoutingUpdate() {
+        uint8_t* neighbors;
+        if (!started) {
+            return;
+        }
+        neighbors = call NeighborDiscovery.getNeighbors();
 
         call Flooding.flood(PROTOCOL_LINKSTATE, AM_BROADCAST_ADDR, neighbors, neighborBytes);
-        call sendTimer.startOneShot(30 * second);
+        call sendTimer.startOneShot(routingUpdatePeriod * second);
+    }
+
+    event void sendTimer.fired() {
+        uint8_t* neighbors;
+        started = TRUE;
+        neighbors = call NeighborDiscovery.getNeighbors();
+
+        call Flooding.flood(PROTOCOL_LINKSTATE, AM_BROADCAST_ADDR, neighbors, neighborBytes);
+        call sendTimer.startOneShot(routingUpdatePeriod * second);
     }
 }

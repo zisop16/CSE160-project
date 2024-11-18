@@ -4,6 +4,7 @@
 
 module NeighborDiscoveryP {
     provides interface NeighborDiscovery;
+    uses interface LinkState;
     uses interface Timer<TMilli> as discoveryTimer;
     uses interface SimpleSend as Sender;
 }
@@ -28,14 +29,23 @@ implementation {
     pack neighborDiscoveryPacket;
     pack neighborReplyPacket;
 
-    void calculateNeighbors() {
+    /*
+    Returns true if a difference between calculated neighbors and previously calculated neighbors was found
+    */
+    bool calculateNeighbors() {
         uint8_t i;
         uint8_t byteIndex = 0;
         uint8_t bitIndex;
         uint8_t currValue = 0;
+        uint8_t prevValue;
         int currIsNeighbor;
+        bool difference = FALSE;
         for (i = 0; i < NUM_NODES; i++) {
             if (byteIndex != i / 8) {
+                prevValue = neighbors[byteIndex];
+                if (prevValue != currValue) {
+                    difference = TRUE;
+                }
                 neighbors[byteIndex] = currValue;
                 currValue = 0;
             }
@@ -45,6 +55,7 @@ implementation {
             currIsNeighbor = neighborResponseStatistics[i] > NEIGHBOR_THRESHOLD;
             currValue = currValue + (currIsNeighbor << bitIndex);
         }
+        return difference;
     }
     uint8_t _isNeighbor(uint8_t nodeID) {
         uint8_t byteIndex;

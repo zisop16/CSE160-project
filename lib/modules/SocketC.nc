@@ -10,6 +10,7 @@ implementation {
 
 	Socket = SocketP.Socket;
 
+	components new ListC(incoming_connection_t, MAX_NUM_OF_SOCKETS) as incomingConnections;
 	components new ListC(socket_port_t, MAX_NUM_OF_SOCKETS) as listeningPorts;
 	components new ListC(ack_data_t, MAX_NUM_OF_SOCKETS * SOCKET_BUFFER_SIZE) as queuedAcks;
 	components new ListC(ack_data_t, MAX_NUM_OF_SOCKETS * SOCKET_BUFFER_SIZE) as remainingAcks;
@@ -29,6 +30,7 @@ implementation {
 	SocketP.listeningPorts -> listeningPorts;
 	SocketP.queuedAcks -> queuedAcks;
 	SocketP.remainingAcks -> remainingAcks;
+	SocketP.incomingConnections -> incomingConnections;
 
 	SocketP.LinkState -> LinkStateC;
 	SocketP.ackTimer -> ackTimer;

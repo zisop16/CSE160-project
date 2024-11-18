@@ -21,6 +21,7 @@ module Node{
    uses interface Flooding;
    uses interface NeighborDiscovery;
    uses interface LinkState;
+   uses interface Socket;
 
    uses interface SimpleSend as Sender;
 
@@ -34,6 +35,7 @@ implementation{
       call AMControl.start();
       call NeighborDiscovery.start();
       call LinkState.start();
+      call Socket.start();
 
       dbg(GENERAL_CHANNEL, "Booted\n");
    }
@@ -105,9 +107,14 @@ implementation{
 
    event void CommandHandler.printDistanceVector(){}
 
-   event void CommandHandler.setTestServer(){}
+   event void CommandHandler.setTestServer(socket_port_t port) {
+      call Socket.listen(port);
+   }
 
-   event void CommandHandler.setTestClient(){}
+   event void CommandHandler.setTestClient(socket_port_t srcPort, uint8_t target, socket_port_t destPort) {
+      
+      socket_t sock = call Socket.connect(srcPort, destPort, target);
+   }
 
    event void CommandHandler.setAppServer(){}
 

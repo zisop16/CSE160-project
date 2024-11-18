@@ -12,6 +12,8 @@ class TestSim:
     # COMMAND TYPES
     CMD_PING = 0
     CMD_NEIGHBOR_DUMP = 1
+    CMD_TEST_SERVER = 5
+    CMD_TEST_CLIENT = 4
     CMD_FLOOD = 7
     CMD_ROUTE_DUMP=3
 
@@ -121,18 +123,28 @@ class TestSim:
         self.sendCMD(self.CMD_PING, source, "{0}{1}".format(chr(dest),msg));
     
     def flood(self, source, dest, msg):
-        data = "{0}{1}{2}".format(chr(dest), chr(len(msg)),msg)
+        data = "{0}{1}{2}".format(chr(dest), chr(len(msg)),msg);
         self.sendCMD(self.CMD_FLOOD, source, data);
 
-    def neighborDMP(self, destination):
-        self.sendCMD(self.CMD_NEIGHBOR_DUMP, destination, "neighbor command");
+    def neighborDMP(self, source):
+        self.sendCMD(self.CMD_NEIGHBOR_DUMP, source, "neighbor command");
 
-    def routeDMP(self, destination):
-        self.sendCMD(self.CMD_ROUTE_DUMP, destination, "routing command");
+    def routeDMP(self, source):
+        self.sendCMD(self.CMD_ROUTE_DUMP, source, "routing command");
+    
+    def testServer(self, source, port):
+        data = "{0}".format(chr(port));
+        self.sendCMD(self.CMD_TEST_SERVER, source, data);
+    
+    def testClient(self, source, srcPort, dest, destPort):
+        data = "{0}{1}{2}".format(chr(srcPort), chr(dest), chr(destPort));
+        self.sendCMD(self.CMD_TEST_CLIENT, source, data);
 
     def addChannel(self, channelName, out=sys.stdout):
         print 'Adding Channel', channelName;
         self.t.addChannel(channelName, out);
+
+    
 
 def main():
     s = TestSim();
@@ -144,15 +156,15 @@ def main():
     # s.addChannel(s.GENERAL_CHANNEL);
     # s.addChannel(s.NEIGHBOR_CHANNEL);
     s.addChannel(s.ROUTING_CHANNEL);
+    s.addChannel(s.TRANSPORT_CHANNEL);
 
     
     s.runTime(150);
 
-    s.ping(3, 7, "hello :c");
-    s.runTime(1);
-    s.ping(6, 1, "may i one day find you");
-    s.runTime(1);
-    s.routeDMP(3);
+    s.testServer(3, 100);
+    s.runTime(5);
+    s.testClient(6, 50, 3, 100);
+    
     
     """
     for i in range(1, 20):
@@ -167,7 +179,7 @@ def main():
     # s.flood(18, 1, "Hi!");
     # s.runTime(10);
     # s.ping(2, 1, "Hello, World");
-    s.runTime(50);
+    # s.runTime(5);
     
 
 if __name__ == '__main__':

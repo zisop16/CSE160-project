@@ -19,6 +19,7 @@ implementation {
     components FloodingC;
     components NeighborDiscoveryC;
     components LinkStateC;
+    components SocketC;
     components new AMReceiverC(AM_PACK) as GeneralReceive;
 
     Node -> MainC.Boot;
@@ -28,12 +29,15 @@ implementation {
     Node.Flooding -> FloodingC;
     Node.NeighborDiscovery -> NeighborDiscoveryC;
     Node.LinkState -> LinkStateC;
+    Node.Socket -> SocketC;
 
     components ActiveMessageC;
     Node.AMControl -> ActiveMessageC;
 
     components new SimpleSendC(AM_PACK);
     Node.Sender -> SimpleSendC;
+
+    
 
     components CommandHandlerC;
     Node.CommandHandler -> CommandHandlerC;

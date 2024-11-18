@@ -37,6 +37,7 @@ typedef nx_struct tcpPack {
 uint8_t SYN_FLAG = 1 << 1;
 uint8_t ACK_FLAG = 1 << 2;
 uint8_t FIN_FLAG = 1 << 3;
+uint8_t RST_FLAG = 1 << 4;
 
 typedef nx_struct pack{
 	nx_uint8_t dest;

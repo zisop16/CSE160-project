@@ -14,6 +14,8 @@ enum socket_state{
     ESTABLISHED,
     SYN_SENT,
     SYN_RCVD,
+    FIN_SENT,
+    ROUTE_LOST
 };
 
 
@@ -30,10 +32,15 @@ typedef nx_struct socket_addr_t{
 typedef uint8_t socket_t;
 
 typedef struct ack_data_t{
-    uint32_t timeoutTime;
+    uint32_t initialTime;
     socket_t sock;
-    uint8_t lastSent;
+    bool measureRTT;
 }ack_data_t;
+
+typedef struct incoming_connection_t{
+    socket_port_t port;
+    socket_t sock;
+}incoming_connection_t;
 
 // State of a socket. 
 typedef struct socket_store_t{
@@ -55,6 +62,8 @@ typedef struct socket_store_t{
     uint8_t nextExpected;
 
     uint16_t RTT;
+    float RTTvar;
+
     uint8_t effectiveWindow;
 }socket_store_t;
 
