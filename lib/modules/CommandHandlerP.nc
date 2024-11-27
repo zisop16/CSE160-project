@@ -20,6 +20,7 @@ module CommandHandlerP{
 
 implementation{
     task void processCommand(){
+        uint16_t combined;
         if(! call Queue.empty()){
             CommandMsg *msg;
             uint8_t commandID;
@@ -75,7 +76,8 @@ implementation{
 
             case CMD_TEST_CLIENT:
                 dbg(COMMAND_CHANNEL, "Command Type: Client\n");
-                signal CommandHandler.setTestClient(buff[0], buff[1], buff[2]);
+                combined = ((uint16_t)buff[3] << 8) + (uint16_t)buff[4];
+                signal CommandHandler.setTestClient(buff[0], buff[1], buff[2], combined);
                 break;
 
             case CMD_TEST_SERVER:

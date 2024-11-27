@@ -11,10 +11,10 @@ module NeighborDiscoveryP {
 
 implementation {
     uint16_t localSequenceNumber = 0;
-    // Store 19 floats for neighbor response statistics
-    float neighborResponseStatistics[NUM_NODES];
-    float neighborResponseStatisticsNext[NUM_NODES];
-    const float NEIGHBOR_THRESHOLD = .5;
+    // Store 19 double for neighbor response statistics
+    double neighborResponseStatistics[NUM_NODES];
+    double neighborResponseStatisticsNext[NUM_NODES];
+    const double NEIGHBOR_THRESHOLD = .1;
 
     // Neighbors is a bitmask for bools indicating whether each node is a neighbor
     // ((NUM_NODES - 1) / 8) + 1 == ceil(NUM_NODES / 8.)
@@ -23,7 +23,7 @@ implementation {
     // If we have 40 nodes, we use 5 bytes
     uint8_t neighbors[neighborBytes];
     // Alpha for exponential weighting
-    const float alpha = .2;
+    const double alpha = .1;
 
 
     pack neighborDiscoveryPacket;
@@ -71,13 +71,17 @@ implementation {
         // idk???
         uint16_t TTL = 1;
         int i;
+        bool diff;
         localSequenceNumber += 1;
         makePack(&neighborDiscoveryPacket, TOS_NODE_ID, AM_BROADCAST_ADDR, TTL, PROTOCOL_NEIGHBOR_DISCOVERY, localSequenceNumber, (uint8_t*)"", 0);
         call Sender.send(neighborDiscoveryPacket, AM_BROADCAST_ADDR);
         
-        calculateNeighbors();
+        diff = calculateNeighbors();
         for (i = 0; i < NUM_NODES; i++) {
             neighborResponseStatisticsNext[i] = neighborResponseStatistics[i] * (1 - alpha);
+        }
+        if (diff) {
+            call LinkState.forceRoutingUpdate();
         }
     }
     command uint8_t NeighborDiscovery.isNeighbor(uint8_t nodeID) {
@@ -89,7 +93,7 @@ implementation {
     }
     
     command void NeighborDiscovery.start() {
-        call discoveryTimer.startPeriodic(15 * second);
+        call discoveryTimer.startPeriodic(10 * second);
     }
     command void NeighborDiscovery.reply(pack* neighborPacket) {
         uint8_t* payload = "";
@@ -112,8 +116,8 @@ implementation {
     command void NeighborDiscovery.printNeighbors() {
         int i;
         for (i = 0; i < NUM_NODES; i++) {
-            if (_isNeighbor(i)){
-                dbg(NEIGHBOR_CHANNEL, "I am neighbors with node: %d\n", i + 1);
+            if (_isNeighbor(i + 1)){
+                dbg(NEIGHBOR_CHANNEL, "I am neighbors with node: %d at confidence: %f\n", i + 1, neighborResponseStatistics[i]);
             }
         }
     }

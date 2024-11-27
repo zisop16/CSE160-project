@@ -21,6 +21,8 @@ implementation {
     components LinkStateC;
     components SocketC;
     components new AMReceiverC(AM_PACK) as GeneralReceive;
+    components new TimerMilliC() as writeTimer;
+    components new TimerMilliC() as readTimer;
 
     Node -> MainC.Boot;
 
@@ -37,7 +39,8 @@ implementation {
     components new SimpleSendC(AM_PACK);
     Node.Sender -> SimpleSendC;
 
-    
+    Node.writeTimer -> writeTimer;
+    Node.readTimer -> readTimer;
 
     components CommandHandlerC;
     Node.CommandHandler -> CommandHandlerC;

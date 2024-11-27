@@ -12,7 +12,7 @@
 
 enum{
 	PACKET_HEADER_LENGTH = 6,
-	TCP_HEADER_LENGTH = 8,
+	TCP_HEADER_LENGTH = 7,
 	PACKET_MAX_PAYLOAD_SIZE = 28 - PACKET_HEADER_LENGTH,
 	TCP_MAX_PAYLOAD_SIZE = 28 - PACKET_HEADER_LENGTH - TCP_HEADER_LENGTH,
 	MAX_TTL = 15
@@ -27,17 +27,19 @@ typedef nx_struct floodPack {
 typedef nx_struct tcpPack {
 	nx_socket_port_t destPort;
 	nx_socket_port_t srcPort;
-	nx_uint16_t seq;
-	nx_uint16_t ack;
+	nx_int8_t seq;
+	nx_int8_t ack;
 	nx_uint8_t flags;
 	nx_uint8_t window;
+	nx_uint8_t segment;
 	nx_uint8_t data[0];
 }tcpPack;
 
-uint8_t SYN_FLAG = 1 << 1;
-uint8_t ACK_FLAG = 1 << 2;
-uint8_t FIN_FLAG = 1 << 3;
-uint8_t RST_FLAG = 1 << 4;
+uint8_t SYN_FLAG = 1 << 0;
+uint8_t ACK_FLAG = 1 << 1;
+uint8_t FIN_FLAG = 1 << 2;
+uint8_t RST_FLAG = 1 << 3;
+uint8_t UPDT_WINDOW_FLAG = 1 << 4;
 
 typedef nx_struct pack{
 	nx_uint8_t dest;

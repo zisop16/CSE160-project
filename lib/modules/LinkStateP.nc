@@ -180,6 +180,7 @@ implementation {
 
         call Flooding.flood(PROTOCOL_LINKSTATE, AM_BROADCAST_ADDR, neighbors, neighborBytes);
         call sendTimer.startOneShot(routingUpdatePeriod * second);
+        dbg(NEIGHBOR_CHANNEL, "diff\n");
     }
 
     event void sendTimer.fired() {

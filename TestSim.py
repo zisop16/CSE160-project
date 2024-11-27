@@ -136,8 +136,10 @@ class TestSim:
         data = "{0}".format(chr(port));
         self.sendCMD(self.CMD_TEST_SERVER, source, data);
     
-    def testClient(self, source, srcPort, dest, destPort):
-        data = "{0}{1}{2}".format(chr(srcPort), chr(dest), chr(destPort));
+    def testClient(self, source, srcPort, dest, destPort, maxNumber):
+        firstByte = (maxNumber & 0xFF00) >> 8
+        secondByte = maxNumber & 0xFF
+        data = "{0}{1}{2}{3}{4}".format(chr(srcPort), chr(dest), chr(destPort), chr(firstByte), chr(secondByte));
         self.sendCMD(self.CMD_TEST_CLIENT, source, data);
 
     def addChannel(self, channelName, out=sys.stdout):
@@ -149,10 +151,13 @@ class TestSim:
 def main():
     s = TestSim();
     s.runTime(10);
-    s.loadTopo("example.topo");
-    s.loadNoise("no_noise.txt");
+    # s.loadTopo("example.topo");
+    s.loadTopo("pizza.topo");
+    s.loadNoise("meyer-heavy.txt");
+    # s.loadNoise("some_noise.txt");
+    # s.loadNoise("no_noise.txt");
     s.bootAll();
-    #  s.addChannel(s.COMMAND_CHANNEL);
+    # s.addChannel(s.COMMAND_CHANNEL);
     # s.addChannel(s.GENERAL_CHANNEL);
     # s.addChannel(s.NEIGHBOR_CHANNEL);
     s.addChannel(s.ROUTING_CHANNEL);
@@ -163,8 +168,8 @@ def main():
 
     s.testServer(3, 100);
     s.runTime(5);
-    s.testClient(6, 50, 3, 100);
-    
+    s.testClient(6, 50, 3, 100, 100);
+    s.runTime(1);
     
     """
     for i in range(1, 20):
@@ -174,7 +179,7 @@ def main():
     """
 
     # s.flood(1, 18, "Hello, World");
-    s.runTime(6)
+    s.runTime(500)
     # s.moteOff(1)
     # s.flood(18, 1, "Hi!");
     # s.runTime(10);

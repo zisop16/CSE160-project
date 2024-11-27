@@ -14,8 +14,7 @@ enum socket_state{
     ESTABLISHED,
     SYN_SENT,
     SYN_RCVD,
-    FIN_SENT,
-    ROUTE_LOST
+    FIN_SENT
 };
 
 
@@ -51,20 +50,43 @@ typedef struct socket_store_t{
 
     // This is the sender portion.
     uint8_t sendBuff[SOCKET_BUFFER_SIZE];
-    uint8_t lastWritten;
-    uint8_t lastAck;
-    uint8_t lastSent;
+    int lastWritten;
+    int lastAck;
+    int lastSent;
+    uint8_t writeSegment;
+
+    // If we resend a segment, we need to keep track of the amount of bytes that were not acked
+    uint8_t lostAckBytes;
 
     // This is the receiver portion
     uint8_t rcvdBuff[SOCKET_BUFFER_SIZE];
-    uint8_t lastRead;
-    uint8_t lastRcvd;
-    uint8_t nextExpected;
+    int lastRead;
+    int lastRcvd;
+    int nextExpected;
+    uint8_t readSegment;
 
     uint16_t RTT;
     float RTTvar;
 
     uint8_t effectiveWindow;
+    // Timestamp at which the socket went into CLOSED state
+    // After one minute, the socket will be wiped from memory
+    uint32_t closeTime;
+
+    // # of packets which have not yet been acked
+    uint8_t packetsInFlight;
+    // Max # of packetsInFlight we are allowed to have
+    float congestionWindow;
+    // Whether we are currently in slow start phase
+    bool slowStart;
+
+    // Timestamp of last packet loss
+    uint32_t lastPacketLoss;
+    // Packets in flight when last packet was lost
+    // This parameter will be set to 0 after all the deadPacketsInFlight have "timed out"
+    uint8_t deadPacketsInFlight;
+    uint8_t duplicateAcks;
+
 }socket_store_t;
 
 #endif

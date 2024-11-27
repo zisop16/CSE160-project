@@ -84,6 +84,9 @@ implementation {
                 if (seq <= highestFloodSeqs[origin - 1]) {
                     return;
                 }
+                if (seq > highestFloodSeqs[origin - 1] + 3) {
+                    // dbg(NEIGHBOR_CHANNEL, "disoster %d %d\n", seq, highestFloodSeqs[origin - 1]);
+                }
                 highestFloodSeqs[origin - 1] = seq;
                 break;
             }
