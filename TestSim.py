@@ -153,9 +153,9 @@ def main():
     s.runTime(10);
     # s.loadTopo("example.topo");
     s.loadTopo("pizza.topo");
-    s.loadNoise("meyer-heavy.txt");
+    # s.loadNoise("meyer-heavy.txt");
     # s.loadNoise("some_noise.txt");
-    # s.loadNoise("no_noise.txt");
+    s.loadNoise("no_noise.txt");
     s.bootAll();
     # s.addChannel(s.COMMAND_CHANNEL);
     # s.addChannel(s.GENERAL_CHANNEL);
@@ -168,7 +168,7 @@ def main():
 
     s.testServer(3, 100);
     s.runTime(5);
-    s.testClient(6, 50, 3, 100, 100);
+    s.testClient(6, 50, 3, 100, 5000);
     s.runTime(1);
     
     """

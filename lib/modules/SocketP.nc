@@ -109,40 +109,18 @@ implementation {
 		return removed;
 	}
 
-	void dequeueAck(socket_t sock) {
+	bool dequeueAck(socket_t sock) {
 		uint16_t size = call queuedAcks.size();
 		int i;
-		float alpha = .2;
 		ack_data_t curr;
-		uint32_t measuredRTT;
-		uint32_t newRTT;
-		float newRTTVar;
 		bool client = call clientSockets.contains(sock);
-		socket_store_t data;
-		uint32_t oldRTT = data.RTT;
-		float oldVar = data.RTTvar;
-		uint32_t deviation;
+		bool recalculateRTT = FALSE;
 
 		for (i = 0; i < size; i++) {
 			curr = call queuedAcks.popfront();
 			if (curr.sock == sock) {
 				if (curr.measureRTT) {
-					data = getSocketData(sock);
-					measuredRTT = call ackTimer.getNow() - curr.initialTime;
-					newRTT = (uint32_t)(oldRTT * (1 - alpha) + measuredRTT * alpha);
-					if (measuredRTT > oldRTT) {
-						deviation = measuredRTT - oldRTT;
-					} else {
-						deviation = oldRTT - measuredRTT;
-					}
-					newRTTVar = oldVar * (1 - alpha) + alpha * deviation;
-					data.RTT = newRTT;
-					data.RTTvar = newRTTVar;
-					if (client) {
-						call clientSockets.insert(sock, data);
-					} else {
-						call serverSockets.insert(sock, data);
-					}
+					recalculateRTT = TRUE;
 				}
 				break;
 			}
@@ -152,11 +130,13 @@ implementation {
 			curr = call remainingAcks.popback();
 			call queuedAcks.pushfront(curr);
 		}
+		return recalculateRTT;
 	}
 
 	socket_store_t initializeSocket() {
 		socket_store_t socketInfo;
-		socketInfo.RTT = 1000;
+		// This is a gracious overestimate
+		socketInfo.RTT = 5000;
 		socketInfo.RTTvar = 0;
 		socketInfo.packetsInFlight = 0;
 		socketInfo.congestionWindow = 1;
@@ -215,6 +195,7 @@ implementation {
 			if (socketData.congestionWindow < 1) {
 				socketData.congestionWindow = 1;
 			}
+			// dbg(TRANSPORT_CHANNEL, "ack lost\n");
 			socketData.slowStart = FALSE;
 		}
 		
@@ -227,7 +208,8 @@ implementation {
 
 	uint32_t ackTimeout(socket_store_t* data) {
 		float mew = 4;
-		return data->RTT + (uint32_t)(data->RTTvar * mew);
+		uint32_t timeout = data->RTT + (uint32_t)(data->RTTvar * mew);
+		return timeout;
 	}
 
 	uint8_t remainingReceiveBuffer(socket_store_t* socketInfo) {
@@ -314,16 +296,21 @@ implementation {
 			}
 			tcpData.seq = currByte;
 			socketInfo.lastSent = tcpData.seq;
-			dbg(TRANSPORT_CHANNEL, "Sending byte %d %d\n", tcpData.seq, (int)socketInfo.congestionWindow);
+			dbg(TRANSPORT_CHANNEL, "Sending byte %d %d %d\n", tcpData.seq, tcpData.segment, (int)socketInfo.congestionWindow);
 			call LinkState.sendMessage(socketInfo.dest.addr, PROTOCOL_TCP, (uint8_t*)&tcpData, currPayloadSize + TCP_HEADER_LENGTH);
-			if (socketInfo.lostAckBytes == 0) {
-				queueAck(sock, TRUE);
-			} else {
-				if (socketInfo.lostAckBytes <= currPayloadSize) {
-					socketInfo.lostAckBytes = 0;
+			if (packetsSent == 0) {
+				// Only measure RTT for the first packet we receive back
+				if (socketInfo.lostAckBytes == 0) {
+					queueAck(sock, TRUE);
 				} else {
-					socketInfo.lostAckBytes -= currPayloadSize;
+					if (socketInfo.lostAckBytes <= currPayloadSize) {
+						socketInfo.lostAckBytes = 0;
+					} else {
+						socketInfo.lostAckBytes -= currPayloadSize;
+					}
+					queueAck(sock, FALSE);
 				}
+			} else {
 				queueAck(sock, FALSE);
 			}
 			packetsSent += 1;
@@ -331,6 +318,11 @@ implementation {
 				break;
 			}
 			payloadStart = payloadStart + currPayloadSize;
+		}
+		if (socketInfo.packetsInFlight == 0) {
+			// If we did not have any packets in flight before sending this one, we should measure timeouts from now
+			// Otherwise, measure timeout from the last ack received
+			socketInfo.timeoutFrom = currTime;
 		}
 		socketInfo.packetsInFlight += packetsSent;
 		updateSocket(sock, &socketInfo);
@@ -482,7 +474,7 @@ implementation {
 		for (i = 0; i < size; i++) {
 			curr = call queuedAcks.popback();
 			currSocketData = getSocketData(curr.sock);
-			timeoutTime = curr.initialTime + ackTimeout(&currSocketData);
+			timeoutTime = currSocketData.timeoutFrom + ackTimeout(&currSocketData);
 			if (time >= timeoutTime) {
 				// Ack has timed out 
 
@@ -608,7 +600,13 @@ implementation {
 		uint8_t currByte;
 		int msgLength;
 		int i;
-		float before;
+		bool recalculateRTT = FALSE;
+		float alpha = .2;
+		uint32_t newRTT;
+		float newRTTVar;
+		uint32_t deviation;
+		uint32_t measuredRTT;
+					
 
 		socket_t sock;
 		socket_store_t socketInfo;
@@ -772,6 +770,7 @@ implementation {
 				if (message->segment != socketInfo.writeSegment) {
 					return;
 				}
+				// dbg(TRANSPORT_CHANNEL, "received ack %d %d\n", message->ack, message->segment);
 				msgLength = (int)message->ack - socketInfo.lastAck;
 				if (msgLength <= 0) {
 					// Duplicate ack received
@@ -802,13 +801,13 @@ implementation {
 					// If we receive ack 13 -> 27 -> 55, we can assume ack 41 was lost in the noise
 					// Therefore we don't check if the ack is too big
 					socketInfo.lastAck = message->ack;
+					
 					while (msgLength > 0) {
 						msgLength -= TCP_MAX_PAYLOAD_SIZE;
-						dequeueAck(sock);
+						recalculateRTT = dequeueAck(sock) || recalculateRTT;
 						if (socketInfo.slowStart) {
 							socketInfo.congestionWindow += 1;
 						} else {
-							before = socketInfo.congestionWindow;
 							socketInfo.congestionWindow += 1./socketInfo.congestionWindow;
 						}
 						if (socketInfo.congestionWindow > (SOCKET_BUFFER_SIZE / TCP_MAX_PAYLOAD_SIZE)) {
@@ -818,6 +817,22 @@ implementation {
 							socketInfo.packetsInFlight -= 1;
 						}
 					}
+					if (recalculateRTT) {
+						measuredRTT = call ackTimer.getNow() - socketInfo.timeoutFrom;
+						newRTT = (uint32_t)(socketInfo.RTT * (1 - alpha) + measuredRTT * alpha);
+						if (measuredRTT > socketInfo.RTT) {
+							deviation = measuredRTT - socketInfo.RTT;
+						} else {
+							deviation = socketInfo.RTT - measuredRTT;
+						}
+						newRTTVar = socketInfo.RTTvar * (1 - alpha) + alpha * deviation;
+						socketInfo.RTT = newRTT;
+						socketInfo.RTTvar = newRTTVar;
+						// dbg(TRANSPORT_CHANNEL, "new %d %f %f\n", socketInfo.RTT, socketInfo.RTTvar, socketInfo.congestionWindow);
+					}
+					
+					socketInfo.timeoutFrom = call ackTimer.getNow();
+
 					if (socketInfo.lastAck == SOCKET_BUFFER_SIZE - 1) {
 						socketInfo.lastAck = -1;
 						socketInfo.lastWritten = -1;

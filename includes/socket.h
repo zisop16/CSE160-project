@@ -80,6 +80,8 @@ typedef struct socket_store_t{
     // Whether we are currently in slow start phase
     bool slowStart;
 
+    // Timestamp to measure timeout from
+    uint32_t timeoutFrom;
     // Timestamp of last packet loss
     uint32_t lastPacketLoss;
     // Packets in flight when last packet was lost
