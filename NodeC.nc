@@ -20,6 +20,8 @@ implementation {
     components NeighborDiscoveryC;
     components LinkStateC;
     components SocketC;
+    components ChatClientC;
+    components ChatServerC;
     components new AMReceiverC(AM_PACK) as GeneralReceive;
     components new TimerMilliC() as writeTimer;
     components new TimerMilliC() as readTimer;
@@ -32,6 +34,8 @@ implementation {
     Node.NeighborDiscovery -> NeighborDiscoveryC;
     Node.LinkState -> LinkStateC;
     Node.Socket -> SocketC;
+    Node.ChatClient -> ChatClientC;
+    Node.ChatServer -> ChatServerC;
 
     components ActiveMessageC;
     Node.AMControl -> ActiveMessageC;

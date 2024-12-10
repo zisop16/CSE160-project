@@ -331,8 +331,8 @@ implementation {
 		uint8_t numClients = call clientSockets.size();
 		uint8_t numServers = call serverSockets.size();
 		int i;
-		socket_t* clients = call clientSockets.getKeys();
-		socket_t* servers = call serverSockets.getKeys();
+		uint32_t* clients = call clientSockets.getKeys();
+		uint32_t* servers = call serverSockets.getKeys();
 		socket_store_t curr;
 		uint32_t currTime = call ackTimer.getNow();
 		uint32_t closeTime;
@@ -364,8 +364,8 @@ implementation {
 		uint8_t numClients = call clientSockets.size();
 		uint8_t numServers = call serverSockets.size();
 		int i;
-		socket_t* clients = call clientSockets.getKeys();
-		socket_t* servers = call serverSockets.getKeys();
+		uint32_t* clients = call clientSockets.getKeys();
+		uint32_t* servers = call serverSockets.getKeys();
 		socket_t curr;
 		for (i = 0; i < numClients; i++) {
 			curr = clients[i];
@@ -396,7 +396,7 @@ implementation {
 		int writeIndex;
 		int i;
 
-		if (remainingSize < size) {
+		if (remainingSize < size || size == 0) {
 			// cannot write this much data
 			return FALSE;
 		}
@@ -416,7 +416,7 @@ implementation {
 		int readIndex;
 		int i;
 		
-		if (remainingSize < size) {
+		if (remainingSize < size || size == 0) {
 			return FALSE;
 		}
 		for (i = 0; i < size; i++) {
@@ -689,6 +689,7 @@ implementation {
 					// if (msgLength <= 0) {
 					// 	return;
 					// }
+					dbg(TRANSPORT_CHANNEL, "Received byte %d\n", message->seq);
 					tcpData.segment = socketInfo.readSegment;
 					if ((msgLength > TCP_MAX_PAYLOAD_SIZE) || (msgLength > tcpData.window) || (msgLength <= 0)) {
 						// We have received a sequence number we were not expecting, so we will drop this packet's data on the floor,

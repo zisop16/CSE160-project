@@ -15,6 +15,8 @@ class TestSim:
     CMD_TEST_SERVER = 5
     CMD_TEST_CLIENT = 4
     CMD_FLOOD = 7
+    CMD_APP_CLIENT = 10
+    CMD_APP_SERVER = 11
     CMD_ROUTE_DUMP=3
 
     # CHANNELS - see includes/channels.h
@@ -144,6 +146,13 @@ class TestSim:
         secondByte = maxNumber & 0xFF
         data = "{0}{1}{2}{3}{4}".format(chr(srcPort), chr(dest), chr(destPort), chr(firstByte), chr(secondByte));
         self.sendCMD(self.CMD_TEST_CLIENT, source, data);
+    
+    def appClient(self, target, username):
+        data = "{0}{1}".format(chr(len(username)), username)
+        self.sendCMD(self.CMD_APP_CLIENT, target, data)
+
+    def appServer(self, target):
+        self.sendCMD(self.CMD_APP_SERVER, target, "app server command")
 
     def addChannel(self, channelName, out=sys.stdout):
         print 'Adding Channel', channelName;
@@ -163,16 +172,20 @@ def main():
     # s.addChannel(s.COMMAND_CHANNEL);
     # s.addChannel(s.GENERAL_CHANNEL);
     # s.addChannel(s.NEIGHBOR_CHANNEL);
-    s.addChannel(s.ROUTING_CHANNEL);
-    s.addChannel(s.TRANSPORT_CHANNEL);
+    # s.addChannel(s.ROUTING_CHANNEL);
+    # s.addChannel(s.TRANSPORT_CHANNEL);
+    s.addChannel(s.APPLICATION_CHANNEL);
 
     
     s.runTime(150);
 
-    s.testServer(3, 100);
-    s.runTime(5);
-    s.testClient(6, 50, 3, 100, 5000);
-    s.runTime(1);
+    s.appServer(1)
+    s.runTime(5)
+    # s.appClient(4, "doctor_dinkis")
+    s.runTime(5)
+    s.appClient(6, "dogman")
+    s.runTime(1)
+    s.appClient(2, "syrup")
     
     """
     for i in range(1, 20):
@@ -182,7 +195,7 @@ def main():
     """
 
     # s.flood(1, 18, "Hello, World");
-    s.runTime(500)
+    s.runTime(50)
     # s.moteOff(1)
     # s.flood(18, 1, "Hi!");
     # s.runTime(10);

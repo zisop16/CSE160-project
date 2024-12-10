@@ -23,6 +23,8 @@ module Node{
    uses interface NeighborDiscovery;
    uses interface LinkState;
    uses interface Socket;
+   uses interface ChatServer;
+   uses interface ChatClient;
 
    uses interface SimpleSend as Sender;
 
@@ -39,11 +41,8 @@ implementation{
       call NeighborDiscovery.start();
       call LinkState.start();
       call Socket.start();
-      if (TOS_NODE_ID == 6) {
-         call writeTimer.startPeriodic(1 * second);
-      } else if (TOS_NODE_ID == 3) {
-         call readTimer.startPeriodic(1 * second);
-      }
+      call writeTimer.startPeriodic(1 * second);
+      call readTimer.startPeriodic(1 * second);
       
 
       dbg(GENERAL_CHANNEL, "Booted\n");
@@ -193,7 +192,21 @@ implementation{
       call Socket.write(clientSocket, (uint8_t*)writeBuffer, bytesWritten);
    }
 
-   event void CommandHandler.setAppServer(){}
+   event void CommandHandler.setAppServer(){
+      call ChatServer.start();
+   }
 
-   event void CommandHandler.setAppClient(){}
+   event void CommandHandler.setAppClient(uint8_t* username, uint8_t usernameLength){
+      uint8_t clientPort = 50;
+      call ChatClient.connect(clientPort, username, usernameLength);
+      
+      if (TOS_NODE_ID == 2) {
+         call ChatClient.broadcast("amongus soon.", 13);
+         call ChatClient.listUsers();
+         call ChatClient.whisper("dogman", "play among us", 6, 13);
+      } else if (TOS_NODE_ID == 6) {
+         call ChatClient.broadcast("what is society", 15);
+         call ChatClient.whisper("syrup", "stfu rat", 5, 8);
+      }
+   }
 }
